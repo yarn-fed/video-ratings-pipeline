@@ -1,0 +1,18 @@
+{
+  "episode_id": "ep_001",
+  "blob_key": "episodes/ep_001.bin",
+  "duration_s": 60,
+  "raw_metadata": {
+    "title": "Hidden Hour S01E01",
+    "season": 1,
+    "episode": 1,
+    "runtime_minutes": 60,
+    "language": "en",
+    "subtitles_raw": "00:00:01,000 --> 00:00:03,500\nWelcome.\n\n00:00:04,000 --> 00:00:06,000\nLet's begin.\n",
+    "act_breaks": [
+      {"start_s": 0, "end_s": 20, "label": "act_1"},
+      {"start_s": 20, "end_s": 40, "label": "act_2"},
+      {"start_s": 40, "end_s": 60, "label": "act_3"}
+    ]
+  }
+}

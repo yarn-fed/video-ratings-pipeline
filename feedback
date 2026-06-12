@@ -1,0 +1,46 @@
+#!/usr/bin/env python3
+"""Send a short product note — part two of a complete submission.
+
+Tell us one thing you'd change about the product, and why.  Lead with an area
+tag and keep it to one change in at most two sentences.  Uses the same
+TEST_TOKEN / SCORING_URL you set for ./score.
+
+    ./feedback                    # prompts for your note
+    ./feedback "API: paginate the reviews endpoint so large catalogs load."
+"""
+
+from __future__ import annotations
+
+import os
+import sys
+
+import httpx
+
+
+def main() -> int:
+    token = os.environ.get("TEST_TOKEN")
+    scoring_url = os.environ.get("SCORING_URL")
+    if not token or not scoring_url:
+        print("error: set TEST_TOKEN and SCORING_URL (see README)", file=sys.stderr)
+        return 2
+
+    text = " ".join(sys.argv[1:]).strip()
+    if not text:
+        try:
+            text = input("One thing you'd change about the product, and why "
+                         "(area tag first, e.g. `API: ...`; max two sentences): ").strip()
+        except EOFError:
+            text = ""
+    if not text:
+        print("nothing submitted (empty note)", file=sys.stderr)
+        return 1
+
+    resp = httpx.post(f"{scoring_url}/v1/feedback",
+                      json={"token": token, "text": text}, timeout=30)
+    resp.raise_for_status()
+    print("thanks — your note was recorded.")
+    return 0
+
+
+if __name__ == "__main__":
+    sys.exit(main())

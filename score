@@ -1,0 +1,68 @@
+#!/usr/bin/env python3
+"""Run the pipeline, submit the result, and print it for your review.
+
+Wall-time is measured authoritatively by the service: every call is timestamped
+server-side, and your time is the span from your first call to your last.  This
+CLI runs the pipeline under a fresh attempt id, submits the output, and prints
+the full review payload plus your wall-time.  Whether the output is *right* is
+yours to judge.  Each run replaces your previous one — your last run is the one
+that counts.
+"""
+
+from __future__ import annotations
+
+import argparse
+import json
+import os
+import sys
+import uuid
+from pathlib import Path
+
+import httpx
+
+ROOT = Path(__file__).resolve().parent
+sys.path.insert(0, str(ROOT))
+
+
+def main() -> int:
+    parser = argparse.ArgumentParser(description="Score the review pipeline.")
+    parser.add_argument("--fixture", default=str(ROOT / "fixtures" / "episode_001.json"))
+    args = parser.parse_args()
+
+    token = os.environ.get("TEST_TOKEN")
+    scoring_url = os.environ.get("SCORING_URL")
+    if not token or not scoring_url:
+        print("error: set TEST_TOKEN and SCORING_URL (see README)", file=sys.stderr)
+        return 2
+
+    # A fresh attempt id scopes the server-side timing for this run.
+    attempt_id = uuid.uuid4().hex
+    os.environ["ATTEMPT_ID"] = attempt_id
+
+    from pipeline import run_pipeline  # imported after ATTEMPT_ID is set
+
+    with open(args.fixture) as f:
+        episode_input = json.load(f)
+
+    payload = run_pipeline(episode_input)
+
+    resp = httpx.post(
+        f"{scoring_url}/v1/submit",
+        json={"token": token, "attempt_id": attempt_id, "output": payload},
+        timeout=60,
+    )
+    resp.raise_for_status()
+    result = resp.json()
+
+    print(json.dumps(payload, indent=2))
+    print("---")
+    if result.get("score_s") is not None:
+        print(f"wall_time_s: {result['score_s']}")
+    print("run recorded — each run replaces your previous one; your last run is the "
+          "one that counts.\nReview the payload above and decide whether you're "
+          "happy with it.")
+    return 0
+
+
+if __name__ == "__main__":
+    sys.exit(main())
